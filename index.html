@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportar Problema - FixNow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--bg); display: flex; justify-content: center; padding: 20px; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        .header { text-align: center; margin-bottom: 25px; }
+        .header h1 { color: var(--primary); margin: 0; font-size: 24px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #334155; }
+        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
+        input:focus, textarea:focus { border-color: var(--primary); }
+        
+        /* Estilo amigable para la foto */
+        .file-input-wrapper {
+            border: 2px dashed #cbd5e1;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .file-input-wrapper:hover { border-color: var(--primary); background: #eff6ff; }
+        #imagePreview { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-top: 10px; display: none; border: 1px solid #e2e8f0; }
+
+        button { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:disabled { background: #94a3b8; }
+        
+        .message { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; text-align: center; font-size: 14px; }
+        .success { background: #dcfce7; color: #166534; display: block; }
+        .error { background: #fee2e2; color: #991b1b; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <h1>FixNow</h1>
+        <p>Reporta tu problema con una foto</p>
+    </div>
+
+    <form id="requestForm">
+        <div class="form-group">
+            <label>Nombre Completo</label>
+            <input type="text" id="nombreCliente" placeholder="Tu nombre" required>
+        </div>
+
+        <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="telefonoCliente" placeholder="Ej. 987654321" required>
+        </div>
+
+        <div class="form-group">
+            <label>Dirección</label>
+            <input type="text" id="direccion" placeholder="Calle y número" required>
+        </div>
+
+        <div class="form-group">
+            <label>Tipo de Servicio</label>
+            <select id="tipoServicio" required>
+                <option value="Plomería">Plomería</option>
+                <option value="Electricidad">Electricidad</option>
+                <option value="Carpintería">Carpintería</option>
+                <option value="Otros">Otros</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Descripción</label>
+            <textarea id="descripcion" rows="3" placeholder="¿Qué necesita reparación?" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Foto de la avería (Opcional)</label>
+            <div class="file-input-wrapper" onclick="document.getElementById('imagen').click()">
+                <span id="fileText">📷 Toca para tomar o elegir foto</span>
+                <input type="file" id="imagen" accept="image/*" style="display: none;">
+                <img id="imagePreview" src="" alt="Vista previa">
+            </div>
+        </div>
+
+        <button type="submit" id="btnSubmit">Enviar Reporte</button>
+    </form>
+
+    <div id="responseMsg" class="message"></div>
+</div>
+
+<script>
+    const form = document.getElementById('requestForm');
+    const imageInput = document.getElementById('imagen');
+    const preview = document.getElementById('imagePreview');
+    const fileText = document.getElementById('fileText');
+
+    // Manejar vista previa de imagen
+    imageInput.onchange = (e) => {
+        const [file] = imageInput.files;
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            fileText.innerText = "✅ Foto seleccionada";
+        }
+    };
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btnSubmit');
+        const msg = document.getElementById('responseMsg');
+        
+        btn.disabled = true;
+        btn.innerText = "Procesando solicitud...";
+        msg.style.display = 'none';
+
+        // --- LÓGICA CORRECTA: ENVIAR TODO AL BACKEND ---
+        const formData = new FormData();
+        formData.append('nombreCliente', document.getElementById('nombreCliente').value);
+        formData.append('telefonoCliente', document.getElementById('telefonoCliente').value);
+        formData.append('direccion', document.getElementById('direccion').value);
+        formData.append('tipoServicio', document.getElementById('tipoServicio').value);
+        formData.append('descripcion', document.getElementById('descripcion').value);
+        
+        // Enviamos el archivo físico con la clave 'imagen'
+        if (imageInput.files[0]) {
+            formData.append('imagen', imageInput.files[0]); 
+        }
+
+        try {
+            // Nota: El navegador pone el Content-Type automáticamente como multipart/form-data
+            const response = await fetch('https://backend-production-c588.up.railway.app/api/solicitudes/public/crear-con-foto', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                msg.innerText = "¡Enviado con éxito! Pronto te contactaremos.";
+                msg.className = "message success";
+                form.reset();
+                preview.style.display = 'none';
+                fileText.innerText = "📷 Toca para tomar o elegir foto";
+            } else {
+                const errorData = await response.text();
+                console.error("Error del servidor:", errorData);
+                throw new Error();
+            }
+        } catch (error) {
+            msg.innerText = "Error al conectar con el servidor. Inténtalo de nuevo.";
+            msg.className = "message error";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Enviar Reporte";
+        }
+    });
+</script>
+
+</body>
+</html>
